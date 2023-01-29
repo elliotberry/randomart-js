@@ -4,32 +4,21 @@
   "description": "Generates a randomart image from a buffer or hexadecimal string",
   "main": "./src/randomart.js",
   "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "https://www.github.com/Risto-Stevcev/randomart-js.git"
-  },
-  "scripts": {
-    "test": "./node_modules/.bin/mocha",
-    "compile": "./node_modules/.bin/gulp",
-    "clean": "./node_modules/.bin/gulp clean"
-  },
   "keywords": [
     "randomart",
     "openssh"
   ],
-  "author": "Risto Stevcev",
+  "scripts": {
+    "build": "webpack"
+  },
+  "author": "Risto Stevcev and Elliot Berry",
   "license": "MIT",
   "dependencies": {
     "ramda": "^0.28.0"
+   
   },
   "devDependencies": {
-    "browserify": "^17.0.0",
-    "chai": "^4.3.7",
-    "gulp": "^4.0.2",
-    "gulp-clean": "^0.4.0",
-    "gulp-rename": "^2.0.0",
-    "gulp-sourcemaps": "^3.0.0",
-    "gulp-uglify": "^3.0.2",
-    "mocha": "^10.2.0"
+    "webpack": "^4.44.2",
+    "webpack-cli": "^3.3.12"
   }
 }
