@@ -3,6 +3,7 @@
   "version": "0.1.1",
   "description": "Generates a randomart image from a buffer or hexadecimal string",
   "main": "./src/randomart.js",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://www.github.com/Risto-Stevcev/randomart-js.git"
@@ -19,16 +20,16 @@
   "author": "Risto Stevcev",
   "license": "MIT",
   "dependencies": {
-    "ramda": "^0.23.0"
+    "ramda": "^0.28.0"
   },
   "devDependencies": {
-    "browserify": "^13.3.0",
-    "chai": "^3.5.0",
-    "gulp": "^3.9.1",
-    "gulp-clean": "^0.3.2",
-    "gulp-rename": "^1.2.2",
-    "gulp-sourcemaps": "^2.2.2",
-    "gulp-uglify": "^2.0.0",
-    "mocha": "^3.2.0"
+    "browserify": "^17.0.0",
+    "chai": "^4.3.7",
+    "gulp": "^4.0.2",
+    "gulp-clean": "^0.4.0",
+    "gulp-rename": "^2.0.0",
+    "gulp-sourcemaps": "^3.0.0",
+    "gulp-uglify": "^3.0.2",
+    "mocha": "^10.2.0"
   }
 }
