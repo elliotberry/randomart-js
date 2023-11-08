@@ -1,10 +1,9 @@
 import {repeat, pipe, set, flatten, reverse, splitEvery, equals, lensPath} from 'ramda';
 
-
 var hash;
 var options;
 
-const processOptions = function(userProvidedHash, userProvidedOptions={}) {
+const processOptions = function (userProvidedHash, userProvidedOptions = {}) {
   // Default options
   const defaults = {
     height: 9,
@@ -14,7 +13,7 @@ const processOptions = function(userProvidedHash, userProvidedOptions={}) {
     negativeSpace: ' ',
     border: true,
     cornerCharacters: ['+', '+', '+', '+'],
-    display: false
+    display: false,
   };
   options = Object.assign(defaults, userProvidedOptions);
 
@@ -42,14 +41,11 @@ const processOptions = function(userProvidedHash, userProvidedOptions={}) {
   if (userProvidedHash.length % 2 !== 0) {
     throw Error('The hash length must have an even number');
   }
-  hash = userProvidedHash
-
-}
-
-
+  hash = userProvidedHash;
+};
 
 // Renders the randomart image from a given hash
-const render = function(hashProvided, optionsProvided = {}) {
+const render = function (hashProvided, optionsProvided = {}) {
   processOptions(hashProvided, optionsProvided);
 
   const {height, width, trail, values} = options;
@@ -62,7 +58,7 @@ const render = function(hashProvided, optionsProvided = {}) {
   });
 
   const updateGrid = gridReducer(values);
- 
+
   if (trail) {
     return walk.reduce(
       (grids, coord, idx, walk) => {
@@ -75,7 +71,7 @@ const render = function(hashProvided, optionsProvided = {}) {
   }
 };
 
-const renderToString = function(hashProvided, optionsProvided = {}) {
+const renderToString = function (hashProvided, optionsProvided = {}) {
   processOptions(hashProvided, optionsProvided);
   let output = render(hashProvided, optionsProvided);
 
@@ -84,9 +80,11 @@ const renderToString = function(hashProvided, optionsProvided = {}) {
   }
 
   if (options.border) {
-    
-    output.map(line => { line.unshift('|'); line.push('|'); });
-    
+    output.map(line => {
+      line.unshift('|');
+      line.push('|');
+    });
+
     let borderTop = repeat('-', output[0].length);
     borderTop[0] = options.cornerCharacters[0];
     borderTop[borderTop.length - 1] = options.cornerCharacters[1];
@@ -95,7 +93,6 @@ const renderToString = function(hashProvided, optionsProvided = {}) {
     borderBottom[0] = options.cornerCharacters[2];
     borderBottom[borderBottom.length - 1] = options.cornerCharacters[3];
     output.push(borderBottom);
-   
   }
 
   let str = output.map(line => line.join('')).join('\n');
@@ -104,12 +101,12 @@ const renderToString = function(hashProvided, optionsProvided = {}) {
 };
 
 // Converts a hex string to a buffer
-const hexToBuffer = function(str) {
+const hexToBuffer = function (str) {
   return Buffer.from(str, 'hex');
 };
 
 // The reducer for converting the walk into the grid
-var gridReducer = function(values) {
+var gridReducer = function (values) {
   return function updateGrid(grid, coord, idx, walk) {
     if (idx === walk.length - 1) {
       return pipe(set(lensPath([walk[0].y, walk[0].x]), 'S'), set(lensPath([coord.y, coord.x]), 'E'))(grid);
@@ -120,7 +117,7 @@ var gridReducer = function(values) {
 };
 
 // Pretty prints a 2d array (matrix)
-const gridToString = function(grid) {
+const gridToString = function (grid) {
   return grid
     .map(line => {
       return `[${line.join('][')}]`;
@@ -129,7 +126,7 @@ const gridToString = function(grid) {
 };
 
 // Converts a buffer to a binary pairs array
-var bufferToBinaryPairs = function(buffer) {
+var bufferToBinaryPairs = function (buffer) {
   const str = [];
   buffer.forEach(value => {
     let binaryValue = value.toString(2);
@@ -140,7 +137,7 @@ var bufferToBinaryPairs = function(buffer) {
 };
 
 // Gets the walk from a set of pairs and the box's height and width
-var getWalk = function(pairs, width, height) {
+var getWalk = function (pairs, width, height) {
   var width = width || defaults.width;
   var height = height || defaults.height;
 
@@ -292,10 +289,9 @@ var getWalk = function(pairs, width, height) {
   );
 };
 
-const display = (output) => {
+const display = output => {
   console.log(output);
-
-}
+};
 // Converts the walk into the numeric format found in the drunken bishop paper
 const walkToNumeric = (walk, width, height) => {
   var width = width || defaults.width;
