@@ -1,21 +1,29 @@
-import {repeat, pipe, set, flatten, reverse, splitEvery, equals, lensPath} from 'ramda';
+import {
+  pipe,
+  set,
+  flatten,
+  reverse,
+  splitEvery,
+  equals,
+  lensPath
+} from 'ramda';
 
-let hash;
-let options;
 
-const processOptions = function (userProvidedHash, userProvidedOptions = {}) {
+const processOptions = (userProvidedHash, userProvidedOptions = {}) => {
   // Default options
   const defaults = {
     height: 9,
     width: 17,
     trail: false,
-    values: [' ', '.', 'o', '+', '=', '*', 'B', 'O', 'X', '@', '%', '&', '#', '/', '^'],
+    values: [
+      ' ', '.', 'o', '+', '=', '*', 'B', 'O', 'X', '@', '%', '&', '#', '/', '^'
+    ],
     negativeSpace: ' ',
     border: true,
     cornerCharacters: ['+', '+', '+', '+'],
     display: false,
   };
-  options = Object.assign(defaults, userProvidedOptions);
+  let options = { ...defaults, ...userProvidedOptions };
 
   if (!(userProvidedHash instanceof Buffer || typeof userProvidedHash === 'string') || userProvidedHash.length === 0) {
     throw TypeError('You must pass in a non-zero length hash or string');
@@ -28,142 +36,134 @@ const processOptions = function (userProvidedHash, userProvidedOptions = {}) {
   }
   if (
     !(options.values instanceof Array) ||
-    !options.values.every(value => {
-      return typeof value === 'string' && value.length === 1;
-    })
+    !options.values.every(value => typeof value === 'string' && value.length === 1)
   ) {
     throw TypeError('The values option must an array of single character strings');
   }
-
   if (options.height % 2 !== 1 || options.width % 2 !== 1) {
     throw Error('The height and width options must be odd numbers');
   }
-  if (userProvidedHash.length % 2 !== 0) {
-    throw Error('The hash length must have an even number');
+  //if (userProvidedHash.length % 2 !== 0) {
+  //  throw Error('The hash length must have an even number');
+ // }
+  let hash = userProvidedHash;
+  if (typeof hash === 'string') {
+    hash = Buffer.from(hash, 'hex');
   }
-  hash = userProvidedHash;
+  if (hash.length % 2 !== 0) {
+    hash = Buffer.concat([Buffer.alloc(1, 0), hash]);
+  }
+  return { hash, options };
 };
 
 // Renders the randomart image from a given hash
-const render = function (hashProvided, optionsProvided = {}) {
-  processOptions(hashProvided, optionsProvided);
+const render = (hashProvided, optionsProvided = {}) => {
+  var {hash, options} = processOptions(hashProvided, optionsProvided);
 
-  const {height, width, trail, values} = options;
+  const { height, width, trail, values } = options;
 
-  const pairs = bufferToBinaryPairs(typeof hash === 'string' ? Buffer.from(hash, 'hex') : hash);
+  const pairs = bufferToBinaryPairs(hash);
   const walk = getWalk(pairs, width, height);
-  //console.log(walk);
-  const grid = repeat([], height).map(line => {
-    return repeat(' ', width);
-  });
+
+  const grid = Array.from({ length: height }, () => Array(width).fill(' '));
 
   const updateGrid = gridReducer(values);
 
-  return trail ? walk.reduce(
-    (grids, coord, idx, walk) => {
-      return grids.concat([updateGrid(last(grids), coord, idx, walk)]);
-    },
-    [grid],
-  ) : walk.reduce(updateGrid, grid);
+  return trail
+    ? walk.reduce(
+      (grids, coord, idx, walk) =>
+        grids.concat([updateGrid(grids[grids.length - 1], coord, idx, walk)]),
+      [grid]
+    )
+    : walk.reduce(updateGrid, grid);
 };
 
-const renderToString = function (hashProvided, optionsProvided = {}) {
-  processOptions(hashProvided, optionsProvided);
-  let output = render(hashProvided, optionsProvided);
+const renderToString = (hashProvided, optionsProvided = {}) => {
+  var {hash, options} = processOptions(hashProvided, optionsProvided);
+  let output = render(hash, options);
 
   if (options.negativeSpace !== ' ') {
     output = output.map(line => line.map(value => (value === ' ' ? options.negativeSpace : value)));
   }
 
   if (options.border) {
-    output.map(line => {
+    output.forEach(line => {
       line.unshift('|');
       line.push('|');
     });
 
-    const borderTop = repeat('-', output[0].length);
+    const borderTop = Array(output[0].length).fill('-');
     borderTop[0] = options.cornerCharacters[0];
     borderTop[borderTop.length - 1] = options.cornerCharacters[1];
     output.unshift(borderTop);
-    const borderBottom = repeat('-', output[0].length);
+    const borderBottom = Array(output[0].length).fill('-');
     borderBottom[0] = options.cornerCharacters[2];
     borderBottom[borderBottom.length - 1] = options.cornerCharacters[3];
     output.push(borderBottom);
   }
 
-  const str = output.map(line => line.join('')).join('\n');
-
   return output.map(line => line.join('')).join('\n');
 };
 
 // Converts a hex string to a buffer
-const hexToBuffer = function (str) {
-  return Buffer.from(str, 'hex');
-};
+const hexToBuffer = str => Buffer.from(str, 'hex');
 
 // The reducer for converting the walk into the grid
-var gridReducer = function (values) {
-  return function updateGrid(grid, coord, idx, walk) {
-    if (idx === walk.length - 1) {
-      return pipe(set(lensPath([walk[0].y, walk[0].x]), 'S'), set(lensPath([coord.y, coord.x]), 'E'))(grid);
-    }
-    const newValue = values[values.indexOf(grid[coord.y][coord.x]) + 1];
-    return set(lensPath([coord.y, coord.x]), newValue, grid);
-  };
+const gridReducer = values => (grid, coord, idx, walk) => {
+  if (idx === walk.length - 1) {
+    return pipe(
+      set(lensPath([walk[0].y, walk[0].x]), 'S'),
+      set(lensPath([coord.y, coord.x]), 'E')
+    )(grid);
+  }
+  const newValue = values[(values.indexOf(grid[coord.y][coord.x]) + 1) % values.length];
+  return set(lensPath([coord.y, coord.x]), newValue, grid);
 };
 
 // Pretty prints a 2d array (matrix)
-const gridToString = function (grid) {
-  return grid
-    .map(line => {
-      return `[${line.join('][')}]`;
-    })
-    .join('\n');
-};
+const gridToString = grid =>
+  grid.map(line => `[${line.join('][')}]`).join('\n');
 
 // Converts a buffer to a binary pairs array
-var bufferToBinaryPairs = function (buffer) {
+const bufferToBinaryPairs = buffer => {
   const str = [];
   buffer.forEach(value => {
-    let binaryValue = value.toString(2);
-    if (binaryValue.length < 8) binaryValue = repeat('0', 8 - binaryValue.length).join('') + binaryValue;
+    let binaryValue = value.toString(2).padStart(8, '0');
     str.push(binaryValue);
   });
   return flatten(str.map(pipe(splitEvery(2), reverse)));
 };
 
 // Gets the walk from a set of pairs and the box's height and width
-var getWalk = function (pairs, width, height) {
-  var width = width || defaults.width;
-  var height = height || defaults.height;
+const getWalk = (pairs, width, height) => {
+  const initialPosition = {
+    x: (width - 1) / 2,
+    y: (height - 1) / 2
+  };
 
-  const initialPosition = {x: (width - 1) / 2, y: (height - 1) / 2};
+  return pairs.reduce((acc, pair) => {
+    const position = acc[acc.length - 1];
+    const X = position.x;
+    const Y = position.y;
+    const leftEdge = 0;
+    const topEdge = 0;
+    const rightEdge = width - 1;
+    const bottomEdge = height - 1;
+    const leftX = X - 1;
+    const rightX = X + 1;
+    const upY = Y - 1;
+    const downY = Y + 1;
+    const moveLeft = { x: leftX, y: Y };
+    const moveRight = { x: rightX, y: Y };
+    const moveUp = { x: X, y: upY };
+    const moveDown = { x: X, y: downY };
+    const moveUpLeft = { x: leftX, y: upY };
+    const moveUpRight = { x: rightX, y: upY };
+    const moveDownLeft = { x: leftX, y: downY };
+    const moveDownRight = { x: rightX, y: downY };
 
-  return pairs.reduce(
-    (acc, pair) => {
-      const position = acc[acc.length - 1];
-
-      const X = position.x;
-      const Y = position.y;
-      const leftEdge = 0;
-      const topEdge = 0;
-      const rightEdge = width - 1;
-      const bottomEdge = height - 1;
-      const leftX = position.x - 1;
-      const rightX = position.x + 1;
-      const upY = position.y - 1;
-      const downY = position.y + 1;
-      const moveLeft = {x: leftX, y: Y};
-      const moveRight = {x: rightX, y: Y};
-      const moveUp = {x: X, y: upY};
-      const moveDown = {x: X, y: downY};
-      const moveUpLeft = {x: leftX, y: upY};
-      const moveUpRight = {x: rightX, y: upY};
-      const moveDownLeft = {x: leftX, y: downY};
-      const moveDownRight = {x: rightX, y: downY};
-
-      // Top-left position (a)
-      if (equals(position, {x: leftEdge, y: topEdge})) {
+    switch (true) {
+      case equals(position, { x: leftEdge, y: topEdge }):
         switch (pair) {
           case '00':
             return acc.concat(position);
@@ -174,9 +174,8 @@ var getWalk = function (pairs, width, height) {
           case '11':
             return acc.concat(moveDownRight);
         }
-      }
-      // Top-right position (b)
-      else if (equals(position, {x: rightEdge, y: topEdge})) {
+        break;
+      case equals(position, { x: rightEdge, y: topEdge }):
         switch (pair) {
           case '00':
             return acc.concat(moveLeft);
@@ -187,9 +186,8 @@ var getWalk = function (pairs, width, height) {
           case '11':
             return acc.concat(moveDown);
         }
-      }
-      // Bottom-left position (c)
-      else if (equals(position, {x: leftEdge, y: bottomEdge})) {
+        break;
+      case equals(position, { x: leftEdge, y: bottomEdge }):
         switch (pair) {
           case '00':
             return acc.concat(moveUp);
@@ -200,9 +198,8 @@ var getWalk = function (pairs, width, height) {
           case '11':
             return acc.concat(moveRight);
         }
-      }
-      // Bottom-right position (d)
-      else if (equals(position, {x: rightEdge, y: bottomEdge})) {
+        break;
+      case equals(position, { x: rightEdge, y: bottomEdge }):
         switch (pair) {
           case '00':
             return acc.concat(moveUpLeft);
@@ -213,9 +210,8 @@ var getWalk = function (pairs, width, height) {
           case '11':
             return acc.concat(position);
         }
-      }
-      // Top position (T)
-      else if (position.y === topEdge) {
+        break;
+      case position.y === topEdge:
         switch (pair) {
           case '00':
             return acc.concat(moveLeft);
@@ -226,9 +222,8 @@ var getWalk = function (pairs, width, height) {
           case '11':
             return acc.concat(moveDownRight);
         }
-      }
-      // Bottom position (B)
-      else if (position.y === bottomEdge) {
+        break;
+      case position.y === bottomEdge:
         switch (pair) {
           case '00':
             return acc.concat(moveUpLeft);
@@ -239,9 +234,8 @@ var getWalk = function (pairs, width, height) {
           case '11':
             return acc.concat(moveRight);
         }
-      }
-      // Left position (L)
-      else if (position.x === leftEdge) {
+        break;
+      case position.x === leftEdge:
         switch (pair) {
           case '00':
             return acc.concat(moveUp);
@@ -252,9 +246,8 @@ var getWalk = function (pairs, width, height) {
           case '11':
             return acc.concat(moveDownRight);
         }
-      }
-      // Right position (R)
-      else if (position.x === rightEdge) {
+        break;
+      case position.x === rightEdge:
         switch (pair) {
           case '00':
             return acc.concat(moveUpLeft);
@@ -265,9 +258,8 @@ var getWalk = function (pairs, width, height) {
           case '11':
             return acc.concat(moveDown);
         }
-      }
-      // Middle position (M)
-      else {
+        break;
+      default:
         switch (pair) {
           case '00':
             return acc.concat(moveUpLeft);
@@ -278,23 +270,20 @@ var getWalk = function (pairs, width, height) {
           case '11':
             return acc.concat(moveDownRight);
         }
-      }
-    },
-    [initialPosition],
-  );
+    }
+  }, [initialPosition]);
 };
 
-const display = output => {
-  console.log(output);
-};
 // Converts the walk into the numeric format found in the drunken bishop paper
-const walkToNumeric = (walk, width, height) => {
-  var width = width || defaults.width;
-  var height = height || defaults.height;
+const walkToNumeric = (walk, width, height) =>
+  walk.map(({ y, x }) => y * width + x);
 
-  return walk.reduce((acc, {y, x}) => {
-    return acc.concat(y * width + x);
-  }, []);
+export {
+  render,
+  renderToString,
+  hexToBuffer,
+  gridToString,
+  bufferToBinaryPairs,
+  getWalk,
+  walkToNumeric
 };
-
-export {render, renderToString, hexToBuffer, gridToString, bufferToBinaryPairs, getWalk, walkToNumeric};
