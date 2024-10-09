@@ -1,7 +1,7 @@
 import {repeat, pipe, set, flatten, reverse, splitEvery, equals, lensPath} from 'ramda';
 
-var hash;
-var options;
+let hash;
+let options;
 
 const processOptions = function (userProvidedHash, userProvidedOptions = {}) {
   // Default options
@@ -20,10 +20,10 @@ const processOptions = function (userProvidedHash, userProvidedOptions = {}) {
   if (!(userProvidedHash instanceof Buffer || typeof userProvidedHash === 'string') || userProvidedHash.length === 0) {
     throw TypeError('You must pass in a non-zero length hash or string');
   }
-  if (!(typeof options.height === 'number') || !(typeof options.width === 'number')) {
+  if ((typeof options.height !== 'number') || (typeof options.width !== 'number')) {
     throw TypeError('The height and width options must be numbers');
   }
-  if (!(typeof options.trail === 'boolean')) {
+  if (typeof options.trail !== 'boolean') {
     throw TypeError('The trail option must be a boolean');
   }
   if (
@@ -59,16 +59,12 @@ const render = function (hashProvided, optionsProvided = {}) {
 
   const updateGrid = gridReducer(values);
 
-  if (trail) {
-    return walk.reduce(
-      (grids, coord, idx, walk) => {
-        return grids.concat([updateGrid(last(grids), coord, idx, walk)]);
-      },
-      [grid],
-    );
-  } else {
-    return walk.reduce(updateGrid, grid);
-  }
+  return trail ? walk.reduce(
+    (grids, coord, idx, walk) => {
+      return grids.concat([updateGrid(last(grids), coord, idx, walk)]);
+    },
+    [grid],
+  ) : walk.reduce(updateGrid, grid);
 };
 
 const renderToString = function (hashProvided, optionsProvided = {}) {
@@ -85,17 +81,17 @@ const renderToString = function (hashProvided, optionsProvided = {}) {
       line.push('|');
     });
 
-    let borderTop = repeat('-', output[0].length);
+    const borderTop = repeat('-', output[0].length);
     borderTop[0] = options.cornerCharacters[0];
     borderTop[borderTop.length - 1] = options.cornerCharacters[1];
     output.unshift(borderTop);
-    let borderBottom = repeat('-', output[0].length);
+    const borderBottom = repeat('-', output[0].length);
     borderBottom[0] = options.cornerCharacters[2];
     borderBottom[borderBottom.length - 1] = options.cornerCharacters[3];
     output.push(borderBottom);
   }
 
-  let str = output.map(line => line.join('')).join('\n');
+  const str = output.map(line => line.join('')).join('\n');
 
   return output.map(line => line.join('')).join('\n');
 };
@@ -147,7 +143,6 @@ var getWalk = function (pairs, width, height) {
     (acc, pair) => {
       const position = acc[acc.length - 1];
 
-      const noMove = position;
       const X = position.x;
       const Y = position.y;
       const leftEdge = 0;
@@ -297,7 +292,6 @@ const walkToNumeric = (walk, width, height) => {
   var width = width || defaults.width;
   var height = height || defaults.height;
 
-  const initialPosition = ((height - 1) / 2) * width + (width - 1) / 2;
   return walk.reduce((acc, {y, x}) => {
     return acc.concat(y * width + x);
   }, []);
