@@ -20,8 +20,7 @@ const processOptions = (userProvidedHash, userProvidedOptions = {}) => {
     ],
     negativeSpace: ' ',
     border: true,
-    cornerCharacters: ['+', '+', '+', '+'],
-    display: false,
+    cornerCharacters: ['+', '+', '+', '+']
   };
   let options = { ...defaults, ...userProvidedOptions };
 
